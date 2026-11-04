@@ -10,14 +10,47 @@ export default function Panel() {
   const [id, setId] = useState(emps[0].id);
   const [time, setTime] = useState('06:58');
   const [msg, setMsg] = useState('');
+  const [listo, setListo] = useState(false);
 
   const blocks = emps.flatMap((e) => week[e.id][day].map((b) => ({ e, b, r: evalBlock(b, cfg) })));
   const rows = blocks.map(({ e, b, r }) => [e.name, `${fmt(b.s)}–${fmt(b.e)}`, fmt(b.i), fmt(b.o), <Badge k={label(r)} />]);
+
+  const reproducirSonido = () => {
+    try {
+      const audio = new Audio('/beep.mp3');
+      audio.play().catch(() => {
+        // Fallback a beep.wav o sintetizador del navegador si aún no se ha colocado el archivo
+        const audioWav = new Audio('/beep.wav');
+        audioWav.play().catch(() => {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (AudioCtx) {
+            const ctx = new AudioCtx();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(659.25, ctx.currentTime);
+            osc.frequency.setValueAtTime(880, ctx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.3, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.25);
+          }
+        });
+      });
+    } catch (e) {
+      console.warn('Audio no disponible', e);
+    }
+  };
 
   const checar = async () => {
     const e = emps.find((x) => x.id === id);
     const r = await dispatch({ type: 'simulate', body: { uid: e.uid, date: addDays(weekStart, day), time } });
     setMsg(r.msg);
+    reproducirSonido();
+    setListo(true);
+    setTimeout(() => setListo(false), 2000);
   };
 
   return (
@@ -46,7 +79,9 @@ export default function Panel() {
             </select>
           </label>
           <label>Hora<input type="time" value={time} onChange={(e) => setTime(e.target.value)} /></label>
-          <button className="p" onClick={checar}>Acercar tarjeta</button>
+          <button className={`p ${listo ? 'success' : ''}`} onClick={checar} disabled={listo}>
+            {listo ? '✓ Listo' : 'Acercar tarjeta'}
+          </button>
         </div>
         {msg && <div className="toast">{msg}</div>}
       </Box>
