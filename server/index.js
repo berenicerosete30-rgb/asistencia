@@ -7,7 +7,7 @@ import * as D from './db.js';
 import { addDays, mondayOf } from '../src/lib/dates.js';
 
 const PORT = process.env.PORT || 3000;
-const DEVICE_KEY = process.env.DEVICE_KEY || 'cambia-esta-clave';
+const DEVICE_KEY = process.env.DEVICE_KEY || '3003';
 D.seedIfEmpty();
 
 const app = express();
